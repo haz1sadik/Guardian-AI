@@ -6,13 +6,20 @@ from joblib import load
 import numpy as np
 import time
 
+# Feature index mapping for vectors ordered as guardian_ai.common.constants.FEATURES.
+IDX_CREATED_RATE = 0
+IDX_MODIFIED_RATE = 1
+IDX_DELETED_RATE = 2
+IDX_RENAMED_RATE = 3
+IDX_DISTINCT_EXT = 4
+
 
 class FeatureWindow:
     def __init__(self) -> None:
         self.reset()
 
     def reset(self) -> None:
-        self.start = time.time()
+        self.start = time.perf_counter()
         self.created = 0
         self.modified = 0
         self.deleted = 0
@@ -31,7 +38,7 @@ class FeatureWindow:
         self.extensions.add(Path(path).suffix.lower())
 
     def vector(self) -> np.ndarray:
-        elapsed = max(1.0, time.time() - self.start)
+        elapsed = max(1.0, time.perf_counter() - self.start)
         return np.array([
             self.created / elapsed,
             self.modified / elapsed,
@@ -49,7 +56,11 @@ class Detector:
             self.model = load(model_path)
 
     def _heuristic_score(self, x: np.ndarray) -> float:
-        created_rate, modified_rate, deleted_rate, renamed_rate, ext_count = x.tolist()
+        created_rate = float(x[IDX_CREATED_RATE])
+        modified_rate = float(x[IDX_MODIFIED_RATE])
+        deleted_rate = float(x[IDX_DELETED_RATE])
+        renamed_rate = float(x[IDX_RENAMED_RATE])
+        ext_count = float(x[IDX_DISTINCT_EXT])
         return -(
             max(0.0, modified_rate - 2.0)
             + 1.2 * max(0.0, renamed_rate - 0.5)

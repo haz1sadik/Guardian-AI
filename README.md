@@ -102,4 +102,5 @@ Report mean/min/max MTCR for panel demo.
 
 - This is an **MVP prototype** focused on one protected folder (not system-wide).
 - VSS invocation is implemented as a scheduled backup-cycle trigger attempt.
+- The containment read-only step uses a lightweight `attrib +R` best-effort lock; treat it as demo-grade hardening only.
 - For production-grade process attribution and richer ETW features, add dedicated ETW provider integration in next phase.

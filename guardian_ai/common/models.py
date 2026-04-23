@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pydantic import BaseModel
-from typing import Dict, List
 
 
 class Alert(BaseModel):
@@ -10,7 +9,7 @@ class Alert(BaseModel):
     severity: str
     reason: str
     anomaly_score: float
-    suspicious_pids: List[int]
-    changed_files: List[str]
+    suspicious_pids: list[int]
+    changed_files: list[str]
     mtcr_seconds: float | None = None
-    details: Dict[str, str] = {}
+    details: dict[str, str] = {}

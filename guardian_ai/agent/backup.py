@@ -5,19 +5,31 @@ import shutil
 import subprocess
 import time
 
+MIN_BACKUP_INTERVAL_SECONDS = 30
+
 
 def mirror_backup(protected_dir: Path, backup_dir: Path) -> None:
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    if backup_dir.exists():
-        for p in list(backup_dir.rglob("*")):
-            if p.is_file():
-                p.unlink()
+    stage_dir = backup_dir.parent / f"{backup_dir.name}.stage"
+    old_dir = backup_dir.parent / f"{backup_dir.name}.old"
+
+    if stage_dir.exists():
+        shutil.rmtree(stage_dir, ignore_errors=True)
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
     for src in protected_dir.rglob("*"):
         if src.is_file():
             rel = src.relative_to(protected_dir)
-            dst = backup_dir / rel
+            dst = stage_dir / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
+
+    if old_dir.exists():
+        shutil.rmtree(old_dir, ignore_errors=True)
+    if backup_dir.exists():
+        backup_dir.rename(old_dir)
+    stage_dir.rename(backup_dir)
+    if old_dir.exists():
+        shutil.rmtree(old_dir, ignore_errors=True)
 
 
 def try_create_vss_snapshot(volume: str = "C:") -> str:
@@ -38,4 +50,9 @@ def backup_loop(protected_dir: Path, backup_dir: Path, interval_seconds: int, st
     while not stop_flag.get("stop", False):
         mirror_backup(protected_dir, backup_dir)
         try_create_vss_snapshot("C:")
-        time.sleep(max(30, interval_seconds))
+        # Enforce a floor to avoid aggressive copy/snapshot churn on low intervals.
+        sleep_left = max(MIN_BACKUP_INTERVAL_SECONDS, interval_seconds)
+        while sleep_left > 0 and not stop_flag.get("stop", False):
+            chunk = min(1.0, sleep_left)
+            time.sleep(chunk)
+            sleep_left -= chunk

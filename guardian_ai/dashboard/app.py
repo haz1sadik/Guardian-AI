@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from guardian_ai.common.models import Alert
@@ -9,17 +10,16 @@ from pathlib import Path
 DB_PATH = Path("data/guardian_dashboard.db")
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="Guardian-AI Dashboard")
-
-
 def _db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def _init_db() -> None:
     with _db() as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS alerts (
@@ -38,9 +38,13 @@ def _init_db() -> None:
         )
 
 
-@app.on_event("startup")
-def startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     _init_db()
+    yield
+
+
+app = FastAPI(title="Guardian-AI Dashboard", lifespan=lifespan)
 
 
 @app.get("/health")

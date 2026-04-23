@@ -1,5 +1,5 @@
 from pathlib import Path
-from guardian_ai.agent.integrity import build_manifest, load_manifest, hash_check
+from guardian_ai.agent.integrity import build_manifest, load_manifest, hash_check, restore_changed_files
 
 
 def test_manifest_and_hash_check(tmp_path: Path):
@@ -15,4 +15,19 @@ def test_manifest_and_hash_check(tmp_path: Path):
 
     f.write_text("tampered", encoding="utf-8")
     changed = hash_check(protected, m)
-    assert "sample.txt" in changed
+    assert any(c == "sample.txt" for c in changed)
+
+
+def test_restore_changed_files(tmp_path: Path):
+    protected = tmp_path / "protected"
+    backup = tmp_path / "backup"
+    protected.mkdir()
+    backup.mkdir()
+
+    rel = "a.txt"
+    (protected / rel).write_text("bad", encoding="utf-8")
+    (backup / rel).write_text("good", encoding="utf-8")
+
+    restored = restore_changed_files([rel], protected, backup)
+    assert restored == [rel]
+    assert (protected / rel).read_text(encoding="utf-8") == "good"

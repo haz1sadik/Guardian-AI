@@ -48,17 +48,7 @@ def block_program_network(exe_path: Path) -> None:
 
 
 def apply_read_only_folder_policy(folder: Path) -> None:
-    cmd = [
-        "icacls",
-        str(folder),
-        "/inheritance:r",
-        "/grant:r",
-        "Administrators:(OI)(CI)F",
-        "/grant:r",
-        "Users:(OI)(CI)R",
-        "/T",
-        "/C",
-    ]
+    cmd = ["attrib", "+R", str(folder / "*"), "/S", "/D"]
     try:
         subprocess.run(cmd, check=False, capture_output=True, text=True)
     except Exception:

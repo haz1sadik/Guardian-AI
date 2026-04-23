@@ -15,6 +15,8 @@ from guardian_ai.agent.containment import top_io_processes, terminate_processes,
 from guardian_ai.agent.integrity import build_manifest, load_manifest, hash_check, restore_changed_files
 from guardian_ai.agent.alerting import send_alert
 
+MIN_DETECTION_WINDOW_SECONDS = 2
+
 
 def ensure_dirs(*paths: Path) -> None:
     for p in paths:
@@ -52,7 +54,7 @@ def run() -> None:
         while True:
             touched = monitor.drain()
             elapsed = time.time() - window.start
-            if elapsed >= max(2, cfg.detection_window_seconds):
+            if elapsed >= max(MIN_DETECTION_WINDOW_SECONDS, cfg.detection_window_seconds):
                 x = window.vector()
                 is_anomaly, score = detector.is_anomaly(x)
                 if is_anomaly and touched:

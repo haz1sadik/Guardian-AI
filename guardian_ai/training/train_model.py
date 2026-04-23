@@ -5,8 +5,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from joblib import dump
-
-FEATURES = ["created_rate", "modified_rate", "deleted_rate", "renamed_rate", "distinct_ext"]
+from guardian_ai.common.constants import FEATURES
 
 
 def main() -> None:

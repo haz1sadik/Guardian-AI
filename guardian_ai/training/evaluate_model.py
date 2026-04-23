@@ -4,8 +4,7 @@ import argparse
 import pandas as pd
 from joblib import load
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
-
-FEATURES = ["created_rate", "modified_rate", "deleted_rate", "renamed_rate", "distinct_ext"]
+from guardian_ai.common.constants import FEATURES
 
 
 def main() -> None:
