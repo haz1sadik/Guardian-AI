@@ -28,6 +28,88 @@ This repository provides a zero-to-demo prototype aligned to your poster goals:
 - `guardian_ai/simulator/` - safe folder-scoped attack simulator
 - `scripts/` - install/run scripts
 
+## Full setup from fresh Windows install (zero to demo)
+
+1. **Install prerequisites on Windows**
+   - Install Python 3.10+ (64-bit) from python.org and enable **Add python.exe to PATH**.
+   - Install Git for Windows.
+   - Open PowerShell as Administrator.
+   - If script execution is blocked, run:
+     ```powershell
+     Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+     ```
+
+2. **Get the project**
+   - Clone (or copy) this repository to a local path, for example `C:\Guardian-AI`.
+   - Open PowerShell in that repository folder.
+
+3. **Choose demo topology**
+   - Recommended: two machines on the same Wi-Fi/LAN.
+     - Machine A: Dashboard
+     - Machine B: Victim/Agent
+   - Single-machine demo is also supported for local testing.
+
+4. **Start the dashboard (Machine A)**
+   - Run:
+     ```powershell
+     .\scripts\run-dashboard.ps1
+     ```
+   - This script creates `.venv`, installs dependencies, and starts FastAPI on port `8000`.
+   - Open `http://<dashboard-ip>:8000` in a browser and keep this PowerShell window running.
+
+5. **Install and start the agent (Machine B)**
+   - Run (Administrator PowerShell):
+     ```powershell
+     .\scripts\install-agent.ps1
+     ```
+   - Provide dashboard URL when prompted (example: `http://192.168.1.20:8000`).
+   - The installer creates `C:\ProgramData\GuardianAI\config.json`, installs dependencies, and registers startup task `GuardianAI_Agent`.
+
+6. **Prepare protected demo data**
+   - Place sample `.txt`, `.pdf`, `.docx`, `.xlsx` files in:
+     - `C:\GuardianAI_Demo\protected`
+
+7. **Run safe attack simulation (Machine B)**
+   - Run:
+     ```powershell
+     .\scripts\run-demo-attack.ps1 -ProtectedDir "C:\GuardianAI_Demo\protected"
+     ```
+   - Expected flow: detect anomaly → contain process activity → hash-check protected files → restore changed files from backup → alert appears on dashboard.
+
+8. **Optional: train ML model (Isolation Forest)**
+   - If no model exists, runtime detection falls back to heuristic scoring.
+   - Train with benign windows CSV columns:
+     - `created_rate,modified_rate,deleted_rate,renamed_rate,distinct_ext`
+   - Run:
+     ```powershell
+     python -m guardian_ai.training.train_model --input data\benign_windows.csv --output C:\ProgramData\GuardianAI\model\isolation_forest.joblib --contamination 0.08
+     ```
+   - Restart agent (or reboot) after training so the model is loaded.
+
+9. **Optional: offline model evaluation**
+   - Evaluation CSV must contain the same features plus `label` (`0=benign`, `1=attack`).
+   - Run:
+     ```powershell
+     python -m guardian_ai.training.evaluate_model --model C:\ProgramData\GuardianAI\model\isolation_forest.joblib --input data\eval_windows.csv --label-col label --threshold -0.15
+     ```
+
+10. **Optional: MTCR reporting**
+    - Build CSV with `detect_ts,restore_done_ts` from repeated runs.
+    - Run:
+      ```powershell
+      python -m guardian_ai.training.mtcr_eval --input data\mtcr_runs.csv
+      ```
+
+11. **Troubleshooting quick checks**
+    - Verify scheduled task exists:
+      ```powershell
+      Get-ScheduledTask -TaskName GuardianAI_Agent
+      ```
+    - Verify config file exists:
+      - `C:\ProgramData\GuardianAI\config.json`
+    - Ensure dashboard machine firewall allows inbound TCP `8000`.
+    - Ensure both machines are on the same network and the dashboard URL is reachable.
+
 ## 3) Quick start (dashboard machine)
 
 ```powershell
